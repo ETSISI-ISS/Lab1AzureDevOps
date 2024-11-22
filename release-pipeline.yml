@@ -1,0 +1,35 @@
+# Explicitly set none for repositry trigger
+trigger:
+- none
+
+resources:
+  pipelines:
+  - pipeline: myappbuild  # Name of the pipeline resource
+    source: CI # Name of the triggering pipeline
+    trigger: 
+      branches:
+      - main
+
+variables:
+  vmImageName: 'ubuntu-latest'
+
+jobs:
+- deployment: Deploy
+  displayName: Deploy
+  environment: dev
+  pool: 
+    vmImage: $(vmImageName)
+  strategy:
+    runOnce:
+      deploy:
+        steps:          
+        - download: myappbuild
+          artifact: drop  
+        - task: ExtractFiles@1
+          inputs:
+            archiveFilePatterns: '$(PIPELINE.WORKSPACE)/myappbuild/drop/$(resources.pipeline.myappbuild.runID).zip'
+            destinationFolder: '$(agent.builddirectory)'
+            cleanDestinationFolder: false
+        - script: |  
+            cat $(agent.builddirectory)/helloworld.txt
+            displayName: 'cat'
